@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.facBook.dao.FacBookDAO">
+	
+	<select id="fbList" resultType="com.eleven.facBook.dto.FacBookDTO">
+		SELECT * FROM fac_book fb, facility f WHERE fb.fac_idx =f.fac_idx
+	</select>
+	
+	<select id="fbDetail" resultType="com.eleven.facBook.dto.FacBookDTO" parameterType="String">
+		SELECT * FROM fac_book fb, facility f WHERE fb.fb_idx=#{fb_idx} AND fb.fac_idx =f.fac_idx
+	</select>
+	
+	<select id="reserveId" resultType="String" parameterType="String">
+		SELECT name FROM `member` m WHERE mem_id=(SELECT fb.mem_id FROM fac_book fb, facility f WHERE fb.fb_idx=#{fb_idx} AND fb.fac_idx =f.fac_idx)
+	</select>
+	
+	<delete id="fbDelete" parameterType="int">
+		DELETE FROM fac_book WHERE fb_idx=#{fb_idx}
+	</delete>
+	
+	<select id="nameList" resultType="String" parameterType="int">
+		SELECT name FROM facility f where type=#{type} AND state='사용가능'
+	</select>
+	
+	<update id="fbUpdate" parameterType="hashmap">
+		UPDATE fac_book
+		SET start_date=#{start_date}, 
+			end_date=#{end_date}, 
+			content=#{content}, 
+			fac_idx=(SELECT fac_idx FROM facility WHERE name=#{name} )
+		WHERE fb_idx=#{fb_idx}
+	</update>
+	
+	<select id="overlapCheck" resultType="int" parameterType="hashmap">
+	 	SELECT COUNT(*) AS cnt FROM fac_book 
+	 	WHERE fac_idx =(SELECT fac_idx  FROM facility f WHERE name =#{name})
+	 	AND ((
+	 		start_date <![CDATA[>=]]> #{start_date}
+	 			AND start_date <![CDATA[<=]]> #{end_date}
+	 		) 
+	 	OR (
+	 		end_date >= #{start_date}
+	 			AND end_date <![CDATA[<=]]> #{end_date}
+	 	) 
+	 	OR (
+	 		start_date <![CDATA[<=]]> #{start_date}
+	 			AND end_date <![CDATA[>=]]> #{end_date}
+	 	) 
+	 	OR (
+	 		start_date <![CDATA[>=]]> #{start_date}
+	 			AND end_date <![CDATA[<=]]> #{end_date}
+	 	))
+	</select>
+	
+	<insert id="fbRegist" parameterType="hashmap">
+		INSERT INTO fac_book (start_date, end_date, content, mem_id, fac_idx) 
+		VALUES (#{start_date}, #{end_date}, #{content}, #{loginId}, (SELECT fac_idx FROM facility WHERE name=#{name}))		
+	</insert> 
+		<!-- 
+		<resultMap type="com.eleven.facBook.dto.FacBookDTO" id="mapping_overlapCheck">
+		       <result property="start_date" column="start_date"/>
+		       <result property="end_date" column="end_date"/>
+		       <result property="content" column="content"/>
+		       <result property="mem_id" column="mem_id"/>
+		       <result property="fac_idx" column="fac_idx"/>
+		       <result property="fb_idx" column="fb_idx"/>
+		       <result property="type" column="type"/>
+		       <result property="name" column="name"/>
+		       <result property="state" column="state"/>
+		       <result property="comment" column="comment"/>
+		       <result property="cnt" column="cnt"/>
+		   </resultMap> 
+		-->
+</mapper>

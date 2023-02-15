@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.facility.dao.FacDAO">
+
+	<!-- 리스트 -->
+	<select id="facList" resultType="hashmap" parameterType="hashmap">
+		<if test="option.equals('전체 보기')">
+			SELECT * FROM facility ORDER BY fac_idx DESC limit 10 offset #{offset}
+		</if>
+		<if test="option.equals('시설')">
+			SELECT * FROM facility WHERE type='0' ORDER BY fac_idx DESC limit 10 offset #{offset}
+		</if>
+		<if test="option.equals('차량')">
+			SELECT * FROM facility WHERE type='1' ORDER BY fac_idx DESC limit 10 offset #{offset}
+		</if>
+		<if test="option.equals('기타')">
+			SELECT * FROM facility WHERE type='2' ORDER BY fac_idx DESC limit 10 offset #{offset}
+		</if>
+	</select>
+	
+	<!-- 전체 데이터 수 -->
+	<select id="totalCount" resultType="int" parameterType="String">
+		<if test="option.equals('전체 보기')">
+			SELECT COUNT(fac_idx) FROM facility
+		</if>
+		<if test="option.equals('시설')">
+			SELECT COUNT(fac_idx) FROM facility WHERE type='0'
+		</if>
+		<if test="option.equals('차량')">
+			SELECT COUNT(fac_idx) FROM facility WHERE type='1'
+		</if>
+		<if test="option.equals('기타')">
+			SELECT COUNT(fac_idx) FROM facility WHERE type='2'
+		</if>
+	</select>
+
+	<select id="facDetail" resultType="hashmap" parameterType="int">
+		SELECT * FROM facility WHERE fac_idx=#{fac_idx}
+	</select>
+	
+	<!-- 스케줄러 -->
+	<select id="facListAll" resultType="int">
+		SELECT COUNT(*) FROM facility WHERE state !='사용불가'
+	</select>
+	
+	<!-- 상태변경 -->
+	<update id="facStateUpdate" parameterType="String">
+		UPDATE facility SET state = CASE
+			WHEN fac_idx = (SELECT fac_idx FROM fac_book fb WHERE LEFT(start_date, 16) =#{strNow}) THEN '사용중'
+			WHEN fac_idx = (SELECT fac_idx FROM fac_book fb WHERE LEFT(end_date, 16) =#{strNow}) THEN '사용가능'
+			ELSE state
+		END;
+	</update>
+</mapper>	

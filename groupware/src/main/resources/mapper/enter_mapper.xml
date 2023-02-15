@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eleven.entertainer.dao.EnterDAO">
+
+	<!-- 엔터에이터 등록 폼 그룹리스트 -->
+	<select id="enterWriteForm" resultType="artg">
+		SELECT * FROM art_group
+	</select>
+
+	<!-- 연습생/아티스트 등록하기 -->
+	<insert id="enterRegist" parameterType="enter" useGeneratedKeys="true" keyColumn="ent_idx" keyProperty="ent_idx">	
+		INSERT INTO entertainer
+		(name, birth, gender, height, weight, blood, hobby, skill, enter_com,
+		language, state)
+		VALUES(#{name},#{birth},#{gender},#{height},#{weight},#{blood},#{hobby},#{skill},#{enter_com},#{language},#{state})
+	</insert>
+
+	<insert id="careerRegist">
+		INSERT INTO ent_career
+		(ent_idx, start_date, end_date, content) 
+		VALUES(#{param1}, #{param2},#{param3},#{param4})
+	</insert>
+
+	<insert id="fileWrite">
+		INSERT INTO file
+		(num,ori_file_name,new_file_name,file_cat)
+		VALUES(#{param1}, #{param2},#{param3},8)
+	</insert>
+
+	<insert id="fileWrite2">
+		INSERT INTO file
+		(num,ori_file_name,new_file_name,file_cat)
+		VALUES(#{param1}, #{param2},#{param3},5)
+	</insert>
+	
+	<insert id="artistRegist">
+		INSERT INTO artist
+		(ent_idx, debut_date, mem_id, stage_name, artg_idx)
+		VALUES(#{param1}, #{param2}, #{param3}, #{param4}, #{param5});
+	</insert>
+
+	<insert id="contract_log">
+		INSERT INTO contract_log
+		(cont_start_date, cont_end_date, ent_idx, mem_id, con_com)
+		VALUES(#{cont_start_date},#{cont_end_date},#{entIdx},224001,#{con_com})
+	</insert>
+	
+	<insert id="test_Regist1">
+		INSERT INTO test
+		(ent_idx, tune, beat, sing, tone, rap, face, gesture, dance, acting, test_com)
+		VALUES(#{entIdx}, #{tune}, #{beat}, #{sing}, #{tone}, #{rap}, #{face}, #{gesture}, #{dance}, #{acting}, #{test_com})
+	</insert>
+
+	
+	<!-- 연습생/아티스트 수정하기 -->
+	<update id="enterEdit" parameterType="String">
+		UPDATE entertainer
+		SET name=#{name}, birth=#{birth}, gender=#{gender}, height=#{height}, weight=#{weight},
+		blood=#{blood}, hobby=#{hobby}, skill=#{skill}, enter_com=#{enter_com}, language=#{language},state=#{state}
+		WHERE ent_idx=#{ent_idx}
+	</update>
+	
+	<update id="artEdit">
+		UPDATE artist
+		SET debut_date=#{param2}, stage_name=#{param3}, mem_id=2205001
+		WHERE ent_idx=#{param1};
+	</update>
+	
+	<update id="careerEdit">
+		UPDATE ent_career
+		SET start_date=#{param2}, end_date=#{param3}, content=#{param4}
+		WHERE ent_idx=#{param1};
+	</update>
+	
+	<update id="logEdit">
+		UPDATE contract_log
+		SET cont_start_date=#{param2}, cont_end_date=#{param3}, mem_id=2205001, con_com=#{param4}
+		WHERE ent_idx=#{param1};
+	</update> 
+	
+	<update id="fileUpdate">
+		UPDATE file
+		SET ori_file_name=#{param2}, new_file_name=#{param3}
+		WHERE num=#{param1} AND file_cat=8
+
+	</update>
+	
+	<!-- 연/아 평가등록.. -->
+	<insert id="test_Regist2" parameterType="String">
+		INSERT INTO test
+		(tune, beat, sing, tone, rap, face, gesture, dance, acting, test_com, ent_idx)
+		VALUES(#{tune}, #{beat}, #{sing}, #{tone}, #{rap}, #{face}, #{gesture}, #{dance}, #{acting}, #{test_com}, #{ent_idx})
+	</insert>
+
+
+	<!-- 연습생 리스트 -->
+	<select id="enterList" resultType="enter">
+	SELECT * FROM
+	(SELECT name, birth, t.*
+	from entertainer e JOIN test t on e.ent_idx =t.ent_idx
+	WHERE e.state = '1'
+	order BY test_date DESC
+	limit 18446744073709551615)
+	as test GROUP BY ent_idx
+	</select>
+		
+	<select id="enterFileList" resultType="ent_file">
+		SELECT f.new_file_name, f.num FROM file f, entertainer e  WHERE e.ent_idx =f.num AND e.state = '1' AND file_cat=8;
+	</select>	
+	
+	<!-- 아티스트 리스트 -->	
+	<select id="art_count" resultType="String">
+		SELECT ent_idx  FROM entertainer  WHERE state = '2';
+	</select>
+	
+	<select id="artistrList" resultType="enter" parameterType="String">
+		SELECT artg_name, e.name, e.state FROM art_group, entertainer e WHERE e.state ='2' AND artg_idx=(SELECT 
+		artg_idx FROM artist a WHERE a.ent_idx = e.ent_idx);
+	</select>
+	
+	<select id="artistFileList" resultType="ent_file">
+		SELECT f.new_file_name, f.num FROM file f, entertainer e  WHERE e.ent_idx =f.num AND e.state = '2' AND file_cat=8;
+	</select>
+
+	
+
+	<!-- 연습생 검색 -->
+	<select id="enterSearchList" resultType="enter">
+	SELECT * FROM
+	(SELECT e.name, e.birth, t.*
+	from entertainer e JOIN test t on e.ent_idx =t.ent_idx
+	WHERE e.state=1 order BY t.test_date DESC
+	limit 18446744073709551615)
+	as test WHERE name LIKE CONCAT('%',#{keyword},'%') GROUP BY ent_idx ;
+	</select>
+	<!-- 연습생 검색(파일...) -->
+	<select id="enterSearchFileList" resultType="ent_file">
+		SELECT f.new_file_name, f.num 
+		FROM file f 
+		WHERE file_cat=8 AND f.num in(select e2.ent_idx  from entertainer e2 
+		WHERE state='1' AND name LIKE CONCAT('%',#{keyword},'%'))
+	</select>
+	
+	
+	<!-- 아티스트 검색 -->
+	<select id="artSearchList" parameterType="enter" resultType="enter">	
+		SELECT artg_name, e.name, e.state FROM art_group, entertainer e WHERE e.state ='2' AND
+		<where>
+			<if test="!keyword.equals('') and opt == 'name'">name LIKE CONCAT('%',#{keyword},'%'))</if>	
+			<if test="!keyword.equals('') and opt == 'artg_name'">artg_name LIKE CONCAT('%',#{keyword},'%')</if>		
+		</where>
+		AND artg_idx=(SELECT artg_idx FROM artist a WHERE a.ent_idx = e.ent_idx);
+	</select>
+	
+	<!-- 아티스트 검색(파일...) -->
+	<select id="artistSearchFileList" resultType="ent_file">
+		SELECT f.new_file_name, f.num 
+		FROM file f 
+		WHERE file_cat=8 AND f.num in(select e2.ent_idx  from entertainer e2 where state='2' and
+		<where>
+			<if test="!keyword.equals('') and opt == 'name'">name LIKE CONCAT('%',#{keyword},'%'))</if>			
+		</where>
+		 AND f.num 
+		 in(SELECT a.ent_idx FROM artist a, art_group ag  WHERE a.artg_idx=ag.artg_idx and
+		 <where>
+			<if test="!keyword.equals('') and opt == 'artg_name'">name LIKE CONCAT('%',#{keyword},'%'))</if>			
+		</where>
+		
+	</select>
+	
+	<!-- 아티스트 그룹이름 등록 -->
+	<insert id="artistGroup">
+		INSERT INTO art_group (artg_name) VALUES(#{artg_name});
+	</insert>
+	
+	
+	<!-- 연습생 상세보기 -->
+	<select id="enterProFile" resultType="ent_file" parameterType="String">
+	SELECT f.new_file_name, f.num, f.file_idx, f.ori_file_name  from file f  WHERE file_cat = 8 AND f.num = #{ent_idx};
+	</select>
+	<select id="enter_list" resultType="enter" parameterType="String">
+	SELECT * from entertainer e WHERE e.ent_idx = #{ent_idx};
+	</select>
+	<select id="enterTest" resultType="test" parameterType="String">
+	SELECT * from test t WHERE t.ent_idx = #{ent_idx};
+	</select>
+	<select id="enterCareer" resultType="ent_career" parameterType="String">
+	SELECT * from ent_career WHERE ent_idx = #{ent_idx};
+	</select>
+	<select id="enterLog" resultType="contract_log" parameterType="String">
+	SELECT * from contract_log WHERE ent_idx = #{ent_idx};
+	</select>
+	<select id="enterFiles" resultType="ent_file" parameterType="String">
+	SELECT f.new_file_name, f.num, f.ori_file_name from file f WHERE f.file_cat = 5 AND f.num = #{ent_idx};
+	</select>
+	<select id="art_list" resultType="artist" parameterType="String">
+	SELECT a.*, m.name FROM artist a , `member` m  WHERE a.mem_id=m.mem_id AND ent_idx = #{ent_idx};
+	</select>
+	
+	<select id="artG" resultType="int" parameterType="String">
+	SELECT a.artg_idx FROM artist a WHERE a.ent_idx = #{ent_idx};
+	</select>
+	
+	
+	<select id="enterTestForm" resultType="test" parameterType="String">
+	SELECT ent_idx from test WHERE ent_idx = #{ent_idx} order by test_idx DESC LIMIT 1;
+	</select> 
+	
+	
+<!-- 	<delete id="fileDelete" parameterType="int">
+		DELETE FROM file WHERE file_idx=#{file_idx}
+	</delete> -->
+	
+	
+	<!-- 사원 리스트 호출 -->
+	<select id="memList" resultMap="memlist" resultType="mem_list">
+		SELECT m.mem_id, m.name, m.dep_idx, d.name AS dep_name, d2.name AS duty_name, d2.`level`, p.name AS pos_name 
+			FROM `member` m, department d, duty d2, `position` p 
+			WHERE d.dep_idx = m.dep_idx AND d2.duty_idx = m.duty_idx AND p.pos_idx = m.pos_idx AND d.dep_idx=5;
+	</select>
+	<resultMap type="mem_list" id="memlist">
+		<result property="mem_id" column="mem_id"/>
+		<result property="name" column="name"/>
+		<result property="dep_idx" column="dep_idx"/>
+		<result property="dep_name" column="dep_name"/>
+		<result property="pos_name" column="pos_name"/>
+		<result property="duty_name" column="duty_name"/>
+	</resultMap>
+	
+	<!-- 부서 리스트 호출 -->
+	<select id="depList" resultType="depp">
+		SELECT dep_idx, name AS dep_name FROM department d WHERE active = 'Y';
+	</select>
+
+	<!-- 그룹이름 중복검사 -->
+	<select id="totalCount" resultType="int">
+		SELECT COUNT(*) FROM art_group
+		<where>
+			<if test="!idCheck.equals('')">
+				artg_name = #{idCheck}
+			</if>
+		</where>
+	</select>
+	
+	
+</mapper>

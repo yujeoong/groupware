@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.appr.dao.ApprDAO">
+
+	<!-- 양식 등록 -->
+	<insert id="formRegist" parameterType="docForm">
+		INSERT INTO doc_form(subject, content)
+			VALUES(#{subject}, #{content});
+	</insert>
+	
+	<!-- 양식 삭제 -->
+	<delete id="formDelete">
+		DELETE FROM doc_form WHERE form_idx= #{param1};
+	</delete>
+	
+	<!-- 양식 사용수+1 -->
+	<update id="formUpHit">
+		UPDATE doc_form SET `use`=`use`+1 WHERE form_idx= #{param1};
+	</update>
+	
+	<!-- 양식 리스트 호출 -->
+	<select id="formList" parameterType="String" resultType="docForm">
+		SELECT form_idx, subject, `use` FROM doc_form df 
+		<where>
+			<if test="!searchInput.equals('')">subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+		ORDER BY df.use DESC, form_idx LIMIT 10 OFFSET #{offset}
+	</select>
+	
+	<!-- 양식 총 개수 호출 -->
+	<select id="docFormTotalCount" parameterType="String" resultType="int">
+		SELECT COUNT(form_idx) FROM doc_form
+		<where>
+			<if test="!searchInput.equals('')">subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+	</select>
+	
+	<!-- 문서 양식 호출 -->
+	<select id="apprForm" resultType="docForm">
+		SELECT form_idx, subject, content FROM doc_form WHERE form_idx=#{param1}
+	</select>
+	
+	<!-- 기안문서 등록 -->
+	<insert id="apprRegist"
+		useGeneratedKeys="true" 
+		keyColumn="doc_idx" 
+		keyProperty="doc_idx" 
+		parameterType="apprDoc">
+		INSERT INTO appr_doc(subject, content, mem_id, open, form_idx)
+			VALUES(#{subject},#{content},#{mem_id},#{open},#{form_idx});
+	</insert>
+	
+	<!-- 결재라인 등록 -->
+	<insert id="apprLineRegist" parameterType="apprLine">
+		INSERT INTO appr_line (doc_idx, mem_id, `order`)
+			VALUES(#{doc_idx},#{mem_id},#{order});
+	</insert>
+	
+	<!-- 첫번째 결재자(작성자) 상태(결재완료), 결재일시(기안문서작성날짜) 업데이트-->
+	<update id="apprLineFirst">
+		UPDATE appr_line SET app_date = (SELECT reg_date FROM appr_doc WHERE doc_idx = #{param1}), state = 2
+		WHERE doc_idx = #{param1} AND `order` = 0
+	</update>
+	
+	<!-- 두번째 결재자 상태(결재중)업데이트-->
+	<update id="apprLineSecond">
+		UPDATE appr_line SET state = 1 WHERE doc_idx = #{param1} AND `order` = 1
+	</update>
+	
+	<!-- 결재라인 상태(결재/반려)업데이트-->
+	<update id="apprLineState">
+		UPDATE appr_line SET state = #{param3}, app_date = now() WHERE doc_idx = #{param1} AND `order` = #{param2}
+	</update>
+	
+	<!-- 결재문서 상태 업데이트-->
+	<update id="apprDocState" parameterType="hashmap">
+		UPDATE appr_doc 
+		<set>
+			<if test="!appr_state.equals('')">state=#{appr_state},</if>
+			<if test="!open.equals('')">open=#{open},</if>
+			<if test="!reject_comment.equals('')">comment=#{reject_comment},</if>
+		</set>
+		WHERE doc_idx = #{doc_idx}
+	</update>
+	
+		
+	<!-- 양식 총 개수 호출 -->
+	<select id="apprTotalCount" parameterType="String" resultType="int">
+		SELECT COUNT(doc_idx) FROM appr_doc ad
+		<where>
+		<!-- 수신문서, 결재 대기중 -->
+			<if test="subCat.equals('apprWait')">
+				ad.doc_idx IN (SELECT al.doc_idx FROM appr_line al WHERE al.mem_id = #{loginId} AND al.state = '1') AND mem_id NOT IN (#{loginId})</if>
+		<!-- 수신문서, 결재 완료&반려 (본인이 작성자인 경우 제외)-->
+			<if test="subCat.equals('apprDone')">
+				ad.doc_idx IN (SELECT al.doc_idx FROM appr_line al WHERE al.mem_id = #{loginId} AND (al.state = '2' OR al.state = '3')) AND mem_id NOT IN (#{loginId})</if>
+				
+		<!-- 발신문서, 결재중/2결재완료/3반려 -->
+			<if test="subCat.equals('apprInProgress')">
+				mem_id = #{loginId} AND state = '1'</if>
+			<if test="subCat.equals('apprReject')">
+				mem_id = #{loginId} AND state = '3'</if>
+			<if test="subCat.equals('apprComplete')">
+				mem_id = #{loginId} AND state = '2'</if>
+			<if test="!searchInput.equals('')">AND ad.subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+		ORDER BY ad.reg_date DESC
+	</select>
+	
+	<!-- 기안문서 리스트 호출 -->
+	<select id="apprList" parameterType="String" resultType="apprDoc">
+		SELECT doc_idx, subject, reg_date, state, `open`, mem_id FROM appr_doc ad 
+		<where>
+		<!-- 수신문서, 결재 대기중 -->
+			<if test="subCat.equals('apprWait')">
+				ad.doc_idx IN (SELECT al.doc_idx FROM appr_line al WHERE al.mem_id = #{loginId} AND al.state = '1') AND mem_id NOT IN (#{loginId})</if>
+		<!-- 수신문서, 결재 완료&반려 (본인이 작성자인 경우 제외)-->
+			<if test="subCat.equals('apprDone')">
+				ad.doc_idx IN (SELECT al.doc_idx FROM appr_line al WHERE al.mem_id = #{loginId} AND (al.state = '2' OR al.state = '3')) AND mem_id NOT IN (#{loginId})</if>
+				
+		<!-- 발신문서, 결재중/2결재완료/3반려 -->
+			<if test="subCat.equals('apprInProgress')">
+				mem_id = #{loginId} AND state = '1'</if>
+			<if test="subCat.equals('apprReject')">
+				mem_id = #{loginId} AND state = '3'</if>
+			<if test="subCat.equals('apprComplete')">
+				mem_id = #{loginId} AND state = '2'</if>
+				
+			<if test="!searchInput.equals('')">AND ad.subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+		ORDER BY ad.reg_date DESC LIMIT 10 OFFSET #{offset}
+	</select>
+	
+	<!-- 기안문서 상세 조회 -->
+	<select id="apprDetail" resultType="apprDoc">
+		SELECT doc_idx, ad.subject, ad.content, reg_date, state, `open`, mem_id, comment, ad.form_idx, df.subject AS form_name 
+			FROM appr_doc ad JOIN doc_form df ON ad.form_idx = df.form_idx WHERE doc_idx = #{param1};
+	</select>
+	
+	<!-- 결재라인 조회 -->
+	<select id="apprLine" resultType="apprLine">
+<!-- 		SELECT al.mem_id, al.state, `order`, app_date, m.name, d.name AS dep_name, dt.name AS duty_name -->
+<!-- 			FROM appr_line al, `member` m, department d, duty dt, `position` p -->
+<!-- 			WHERE al.mem_id = m.mem_id AND d.dep_idx = m.dep_idx AND dt.duty_idx = m.duty_idx AND p.pos_idx = m.pos_idx AND doc_idx = #{param1} -->
+		SELECT al.mem_id, al.state, `order`, app_date, m.name, d.name AS dep_name, dt.name AS duty_name, f.new_file_name AS sign_file
+			FROM appr_line al LEFT JOIN file f ON f.file_cat = 7 AND f.num = al.mem_id, `member` m, department d, duty dt, `position` p
+			WHERE al.mem_id = m.mem_id AND d.dep_idx = m.dep_idx AND dt.duty_idx = m.duty_idx AND p.pos_idx = m.pos_idx AND doc_idx = #{param1} ORDER BY `order`
+	</select>
+	
+	<!-- 결재완료 문서 공개일 시 해당사원의 부서게시판에도 등록 -->
+	<insert id="apprToPost">
+		INSERT INTO post(subject, content, mem_id, dep_idx)
+			SELECT subject, content, ad.mem_id, dep_idx FROM appr_doc ad JOIN `member` m ON ad.mem_id=m.mem_id WHERE doc_idx = #{param1};
+	</insert>
+	
+	
+	<!-- 파일 업로드 -->
+	<insert id="fileWrite">
+		INSERT INTO file(ori_file_name, new_file_name, file_cat, num) VALUES(#{param1},#{param2},3,#{param3})
+	</insert>
+	
+	<select id="fileList" resultType="MyFileDTO">
+		SELECT * FROM file WHERE file_cat = 3 AND num = #{param1}
+	</select>
+</mapper>

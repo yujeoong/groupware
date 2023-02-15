@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.post.dao.PostDAO">
+	
+	
+	<!-- 글 작성 -->
+	<insert id="regist" parameterType="PostDTO" useGeneratedKeys="true" keyColumn="post_idx" keyProperty="post_idx">
+		INSERT INTO post(subject, mem_id, content, dep_idx)
+			VALUES(#{subject}, #{mem_id}, #{content}, #{dep_idx})
+	</insert>	
+	
+	<!-- 파일 업로드 (file_cat 부서는 1)-->
+	<insert id="fileUpload">
+		INSERT INTO file(num,ori_file_name,new_file_name,file_cat)
+			VALUES(#{param1}, #{param2},#{param3},1)
+	</insert>
+	
+	
+	
+	<!-- 글 수정할 내용 불러오기 -->
+	<select id="editForm" resultType="hashmap">
+		SELECT p.post_idx, p.subject, p.content, p.mem_id, p.dep_idx, 
+			m.name as mem_name, d.name as dept_name, o.name as pos_name
+			FROM post p
+			join member m on m.mem_id = p.mem_id 
+			join department d on d.dep_idx=m.dep_idx
+			join position o on o.pos_idx = m.pos_idx	
+			WHERE p.post_idx = #{param1}
+	</select>
+
+	<!-- 글 수정  -->
+	<update id="edit" parameterType="hashmap">
+		UPDATE post SET
+			subject = #{subject}
+			, content = #{content}
+		WHERE post_idx = #{post_idx}
+	</update>
+	
+	
+	<!-- 게시판 리스트 불러오기 -->
+	<select id="postList" resultType="PostDTO">
+		select p.post_idx, p.subject, p.content,
+			 m.name as mem_name, d.name as dept_name, o.name as pos_name,
+			 p.date, p.cnt
+		from post p 
+		join member m on m.mem_id = p.mem_id 
+		join department d on d.dep_idx=m.dep_idx
+		join position o on o.pos_idx = m.pos_idx
+		where p.dep_idx = #{dep_idx}
+		<if test='searchType.equals("1")'>
+			AND p.subject like concat ('%',#{searchInput},'%')
+		</if>
+		<if test='searchType.equals("2")'>
+			AND p.content like concat ('%',#{searchInput},'%')
+		</if>
+		<if test='searchType.equals("3")'>
+			AND (m.name like concat ('%',#{searchInput},'%')
+			OR d.name like concat ('%',#{searchInput},'%')
+			OR o.name like concat ('%',#{searchInput},'%'))
+		</if>
+		order by post_idx DESC 
+		limit 10 offset #{offset}
+	</select>
+	
+	
+	<!-- 글 상세보기  -->
+	<select id="detail" resultType="PostDTO">
+		SELECT p.post_idx, p.subject, p.content, p.date, 
+			p.mem_id, b.name as mem_name, d.name as dept_name, o.name as pos_name, p.cnt , p.dep_idx
+			FROM post p
+			JOIN member b ON p.mem_id = b.mem_id 
+			JOIN department d ON d.dep_idx = b.dep_idx
+			JOIN position o ON o.pos_idx = b.pos_idx
+			WHERE p.post_idx = #{param1}
+	</select>
+	
+	<!-- 조회수 -->
+	<update id="upHit" parameterType="String">
+		UPDATE post SET cnt = cnt+1 WHERE post_idx=#{post_idx}
+	</update>
+	
+	
+	<!-- 총 글 갯수 -->
+	<select id="listTotal" resultType="int" parameterType="String">
+		SELECT COUNT(p.post_idx),
+			p.post_idx, p.subject, p.content,
+			m.name as mem_name, 
+			d.name as dept_name, 
+			o.name as pos_name
+			FROM post p
+			join member m on m.mem_id = p.mem_id 
+			join department d on d.dep_idx=m.dep_idx
+			join position o on o.pos_idx = m.pos_idx
+			WHERE p.dep_idx = #{dep_idx}
+			<if test='searchType.equals("1")'>
+				AND p.subject like concat ('%',#{searchInput},'%')
+			</if>
+			<if test='searchType.equals("2")'>
+				AND p.content like concat ('%',#{searchInput},'%')
+			</if>
+			<if test='searchType.equals("3")'>
+				AND (m.name like concat ('%',#{searchInput},'%')
+				OR d.name like concat ('%',#{searchInput},'%')
+				OR o.name like concat ('%',#{searchInput},'%'))
+			</if>
+	</select>	
+	
+	
+	<!-- 상세보기에서 파일 출력 -->
+	<select id="fileList" resultType="FileDTO" parameterType="String">
+		SELECT * FROM file 
+			WHERE num = #{post_idx}
+			AND file_cat = 1
+	</select>
+	
+	
+	<!--  댓글 삭제 -->
+	<delete id="comDelete" parameterType="String">
+		DELETE FROM comment WHERE post_idx = #{post_idx}
+	</delete>
+	
+	<!-- 글 삭제 -->
+	<delete id="postDelete" parameterType="String">
+		DELETE FROM post WHERE post_idx = #{post_idx}
+	</delete>	
+	
+	<!-- 파일 삭제 -->
+	<delete id="fileDelete" parameterType="String">
+		DELETE FROM file WHERE new_file_name= #{file}
+	</delete>	
+	
+
+</mapper>

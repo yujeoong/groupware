@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.adminMem.dao.MemDetailDAO"> 
+	<!-- 정보 조회 -->
+	<select id="careerList" resultType="com.eleven.adminMem.dto.MemCareerDTO" parameterType="String">
+		SELECT * FROM career WHERE mem_id = #{mem_id}
+	</select>
+	
+	<!-- 이력/학력 등록 -->
+	<insert id="careerRegist" parameterType="hashmap">
+		INSERT INTO career (start_date, end_date, car_name, mem_id, car_category, detail) 
+		VALUES (#{start_date}, #{end_date}, #{car_name}, #{mem_id}, #{car_category}, #{detail})
+	</insert>
+	
+	<!-- 이력/학력 삭제 -->
+	<delete id="careerDelete" parameterType="int">
+		DELETE FROM career WHERE car_idx=#{car_idx}
+	</delete>
+	
+	<!-- 부서,직급,직책 변경 로그 -->
+	<select id="changeList" resultType="com.eleven.adminMem.dto.MemChangeDTO" parameterType="String">
+		SELECT mem_id, modi_idx, `date`, comment, 
+			(SELECT name FROM `position` WHERE pos_idx = c.pos_idx) AS pos_idx, 
+			(SELECT name FROM duty WHERE duty_idx = c.duty_idx) AS duty_idx, 
+			(SELECT name FROM department WHERE dep_idx =c.dep_idx) AS dep_idx
+		FROM `change` c 
+		WHERE mem_id =#{mem_id}
+	</select>
+	
+	<!-- 상태 변경 로그 -->
+	<select id="stateList" resultType="com.eleven.adminMem.dto.MemStateDTO" parameterType="String">
+		SELECT DISTINCT `date`, state, modi_id, comment FROM state WHERE mem_id=#{mem_id} ORDER BY `date` DESC
+	</select>
+	
+	<!-- 조회권한 수 -->
+	<select id="authCnt" resultType="int">
+		SELECT category FROM authority WHERE mem_id=#{param1}
+	</select>
+	
+	<!-- 조회권한 리스트 -->
+	<select id="authList" resultType="com.eleven.adminMem.dto.MemAuthDTO" parameterType="String">
+		SELECT a.*, 
+				(CASE WHEN a.category = 1 THEN (SELECT d.name FROM department d WHERE d.dep_idx = a.num) 
+				WHEN a.category = 2 THEN (SELECT p.prj_subject FROM project p WHERE p.prj_idx = a.num) END) AS name 
+		FROM authority a WHERE mem_id = #{mem_id} ORDER BY category
+	</select>
+	
+	<!-- 소분류 리스트 -->
+	<select id="cateList" resultType="com.eleven.adminMem.dto.MemAuthDTO" parameterType="String">
+		<if test="category==1">
+			SELECT * FROM department d
+		</if>
+		<if test="category==2">
+			SELECT * FROM project
+		</if>
+	</select>
+	
+	<!-- 조회권한 등록 -->
+	<insert id="authRegist" parameterType="hashmap">
+		INSERT into authority (mem_id, category, num, parti) values (#{mem_id}, #{category}, #{num}, #{parti})
+	</insert>
+	
+	<!-- 조회권한 삭제 -->
+	<delete id="authDelete" parameterType="hashmap">
+		DELETE FROM authority WHERE mem_id=#{mem_id} AND num=#{num}
+	</delete>
+	
+	<!-- 마이페이지 -->
+	<select id="memDetail" parameterType="String"
+		resultType="hashmap">
+		SELECT m.mem_id, m.name, m.email, m.birthday, m.address,
+		m.phone, m.join_date, m.stack, m.parent_id, m.state,
+		m.dep_idx,
+		m.pos_idx, m.duty_idx,
+		d.name as depName, dt.name as dutyName, p.name
+		as posName
+		FROM `member` m
+		JOIN department d ON m.dep_idx = d.dep_idx
+		JOIN duty dt ON m.duty_idx = dt.duty_idx
+		JOIN `position` p ON m.pos_idx
+		= p.pos_idx
+		WHERE m.mem_id = #{mem_id};
+	</select>
+	
+	<!--  파일 여부 체크 및 가져오기 -->
+	<select id="picFile" resultType="memFileDTO">
+		SELECT * FROM file WHERE
+		file_cat = #{cate} AND num = #{mem_id}
+	</select>
+
+	<select id="picFileChk" resultType="int">
+		SELECT COUNT(*) FROM file
+		WHERE file_cat = #{cate} AND num = #{mem_id}
+	</select>
+	
+	
+	<!-- 관리자 권한 관리 -사원 리스트  -->
+	<select id="totalCount" resultType="int">
+		SELECT COUNT(*) FROM member
+		<where>
+			<if test="!idCheck.equals('')">
+				mem_id = #{idCheck}
+			</if>
+			<if test="searchOption.equals('name')">
+				name like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="searchOption.equals('mem_id')">
+				mem_id like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="!depOption.equals('none')">
+				AND dep_idx = #{depOption}
+			</if>
+			<if test="!posOption.equals('none')">
+				AND pos_idx = #{posOption}
+			</if>
+			<if test="!dutyOption.equals('none')">
+				AND duty_idx = #{dutyOption}
+			</if>
+			AND `level` ='1' OR `level` ='2' 
+		</where>
+		
+	</select>
+	
+	<select id="memList" resultType="com.eleven.adminMem.dto.MemListAuthDTO">
+		SELECT m.mem_id, m.name, m.level
+		,d.name AS depname
+		,dt.name
+		AS dutyname
+		,p.name AS posname
+		FROM `member` m , department d , duty dt, `position` p
+		<where>
+			d.dep_idx = m.dep_idx
+			AND dt.duty_idx = m.duty_idx
+			AND p.pos_idx = m.pos_idx
+			<if test="searchOption.equals('name')">
+				AND m.name like concat ('%',#{searchWhat},'%') 
+			</if>
+			<if test="searchOption.equals('mem_id')">
+				AND m.mem_id like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="!depOption.equals('none')">
+				AND m.dep_idx = #{depOption}
+			</if>
+			<if test="!posOption.equals('none')">
+				AND m.pos_idx = #{posOption}
+			</if>
+			<if test="!dutyOption.equals('none')">
+				AND m.duty_idx = #{dutyOption}
+			</if> 
+			AND m.`level` != '3' AND m.`level` != '0' ORDER BY level
+		</where>
+		limit 10 offset #{offset}
+	</select>
+	
+	<update id="memAuthUpdate" parameterType="hashmap">
+		UPDATE `member` SET level=(#{memAuth}) WHERE mem_id = #{mem_id}
+	</update>
+</mapper>

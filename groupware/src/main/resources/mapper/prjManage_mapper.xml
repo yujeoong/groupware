@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.prjManage.dao.PrjManageDAO">
+	
+	<!-- 프로젝트 등록 -->
+	<insert id="regist"
+		useGeneratedKeys="true" 
+		keyColumn="prj_idx" 
+		keyProperty="prj_idx" 
+		parameterType="project">
+		INSERT INTO finaldb.project(prj_subject, prj_content, prj_start_date, prj_end_date, mem_id)
+			VALUES(#{prj_subject},#{prj_content},#{prj_start_date},#{prj_end_date},#{mem_id});
+	</insert>
+	
+	<!-- 참여자 등록 -->
+	<insert id="authRegist" parameterType="authority">
+		INSERT INTO authority
+			(mem_id, category, num, parti)
+			VALUES(#{mem_id}, 2, #{num}, #{parti});
+	</insert>
+
+	<!-- 참여자 리스트 삭제 -->
+	<delete id="authDelete">
+		DELETE FROM authority WHERE category = 2 AND num = #{param1};
+	</delete>
+	
+	<!-- 프로젝트 디테일 -->
+	<select id="prjDetail" resultType="project">
+		SELECT * FROM project WHERE prj_idx=#{param1}
+	</select>
+	
+	<!-- 프로젝트 참여자 조회 -->
+	<select id="authList" resultType="authority">
+	SELECT a.mem_id, parti, m.name, d.name AS dep_name, dt.name AS duty_name, dt.`level`, p.name AS pos_name 
+		FROM authority a, `member` m, department d, duty dt, `position` p 
+		WHERE a.mem_id = m.mem_id AND d.dep_idx = m.dep_idx AND dt.duty_idx = m.duty_idx AND p.pos_idx = m.pos_idx AND a.category =2 AND a.num=#{param1};
+<!-- 		SELECT mem_id, parti FROM authority WHERE category =2 AND num=#{param1} -->
+	</select>
+	
+	<!-- 프로젝트 수정 -->
+	<update id="edit" parameterType="project">
+		UPDATE project SET prj_subject = #{prj_subject}, prj_content = #{prj_content}, prj_start_date=#{prj_start_date}, prj_end_date=#{prj_end_date}
+		WHERE prj_idx=#{prj_idx} 
+	</update>
+	
+	<!-- 프로젝트 삭제 -->
+	<delete id="delete">
+		DELETE FROM project WHERE prj_idx=#{param1}
+	</delete>
+	
+	<!-- 프로젝트 총 개수 호출 -->
+	<select id="prjTotalCount" parameterType="String" resultType="int">
+		SELECT COUNT(prj_idx) FROM project
+		<where>
+			<if test="listCat.equals('allList')"></if>
+			<if test="listCat.equals('myList')">prj_idx IN (SELECT a.num FROM authority a WHERE a.category =2 AND a.mem_id =#{loginId}) AND prj_end_date > NOW()</if>
+			<if test="!searchInput.equals('')">AND prj_subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+	</select>
+	
+	<!-- 프로젝트 리스트 호출 -->
+	<select id="prjList" parameterType="String" resultType="project">
+		SELECT * FROM project
+		<where>
+			<if test="listCat.equals('allList')"></if>
+			<if test="listCat.equals('myList')">prj_idx IN (SELECT a.num FROM authority a WHERE a.category =2 AND a.mem_id =#{loginId}) AND prj_end_date > NOW()</if>
+			<if test="!searchInput.equals('')">AND prj_subject LIKE CONCAT('%',#{searchInput},'%')</if>
+		</where>
+		ORDER BY prj_end_date DESC LIMIT 10 OFFSET #{offset}
+	</select>
+	
+	<!-- 프로젝트 진행률 호출 -->
+	<select id="taskPercent" resultType="String">
+		SELECT COUNT(case when state = 2 then 1 end)/COUNT(pt.prj_post_idx)*100 FROM prj_post pp JOIN prj_task pt ON pp.prj_post_idx = pt.prj_post_idx WHERE prj_idx =#{param1};
+	</select>
+
+
+	<!-- 사원 리스트 호출 -->
+	<select id="memList" resultType="mem_simple">
+		SELECT m.mem_id, m.name, m.dep_idx, d.name AS dep_name, dt.name AS duty_name, dt.`level`, p.name AS pos_name 
+			FROM `member` m, department d, duty dt, `position` p 
+			WHERE d.dep_idx = m.dep_idx AND dt.duty_idx = m.duty_idx AND p.pos_idx = m.pos_idx ORDER BY dt.`level`,dep_name, m.name;
+	</select>
+	
+	<!-- 부서 리스트 호출 -->
+	<select id="depList" resultType="dep">
+		SELECT dep_idx, name AS dep_name FROM department d WHERE active = 'Y' ORDER BY name;
+	</select>
+</mapper>

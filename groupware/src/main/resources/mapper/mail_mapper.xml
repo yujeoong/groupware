@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.mail.dao.MailDAO">
+	
+	<!-- 메일 쓰기 : mail (발신자) 테이블 데이터 삽입 -->
+	<insert id="registSender" parameterType="MailDTO" useGeneratedKeys="true" keyColumn="mail_idx" keyProperty="mail_idx">
+		INSERT INTO mail(sender_id, title, content)
+	 		VALUES(#{sender_id}, #{title}, #{content})
+	</insert>
+	
+	<!-- 메일 쓰기 : mail_rcp (수신자) 테이블 데이터 삽입 -->
+	<insert id="rcpListRegist" parameterType="String">
+		INSERT INTO mail_rcp(mail_idx, receiver_id)
+			VALUES (#{mail_idx}, #{rcpId})
+	</insert>
+	
+	<!-- 파일 업로드 -->
+	<insert id="fileUpload">
+		INSERT INTO file(num,ori_file_name,new_file_name,file_cat)
+			VALUES(#{param1}, #{param2},#{param3},4)
+	</insert>
+	
+	
+	<!-- 받는편지함 리스트 토탈 카운트 -->
+	<!-- 로그인 아이디 추가...  -->
+	<select id="listTotal" resultType="int" parameterType="String">
+		<if test='cat.equals("1")'>
+			SELECT COUNT(r.mail_idx),
+				b.name as mem_name, 
+				d.name as dept_name, 
+				o.name as pos_name 	
+				FROM mail_rcp r
+				JOIN mail m ON r.mail_idx = m.mail_idx 
+				join member b on b.mem_id = m.sender_id 
+				join department d on d.dep_idx=b.dep_idx 
+				join position o on o.pos_idx = b.pos_idx
+				WHERE r.receiver_id = #{sessionId} 
+				AND r.hide="N"
+				<if test='searchType.equals("1")'>
+					AND m.title like concat ('%',#{searchInput},'%')
+				</if>
+				<if test='searchType.equals("2")'>
+					AND (b.name like concat ('%',#{searchInput},'%')
+					OR d.name like concat ('%',#{searchInput},'%')
+					OR o.name like concat ('%',#{searchInput},'%'))
+				</if>
+				<if test='searchType.equals("3")'>
+					AND m.content like concat ('%',#{searchInput},'%')
+				</if>
+		</if>
+		
+		<if test='cat.equals("2")'>
+			SELECT count (distinct m.mail_idx) 
+				FROM mail m
+				JOIN mail_rcp r ON m.mail_idx = r.mail_idx 
+				WHERE m.sender_id = #{sessionId}
+				AND m.hide="N"
+				<if test='searchType.equals("1")'>
+					AND m.title like concat ('%',#{searchInput},'%')
+				</if>
+				<if test='searchType.equals("2")'>
+					AND m.content like concat ('%',#{searchInput},'%')
+				</if>
+		</if>
+	</select>
+	
+
+	
+	
+	<!-- 쪽지 리스트 *** session에서 id 받아옴 -->
+	<select id="list" resultType="hashmap" parameterType="hashmap">
+		<if test='cat.equals("1")'>
+			SELECT distinct m.mail_idx, 
+				m.sender_id, m.title, m.date, r.state,
+				b.name as mem_name, 
+				d.name as dept_name, 
+				o.name as pos_name
+				FROM mail m
+				join mail_rcp r on m.mail_idx = r.mail_idx
+				join member b on b.mem_id = m.sender_id 
+				join department d on b.dep_idx = d.dep_idx
+				join position o on o.pos_idx = b.pos_idx 
+				WHERE r.hide="N"
+				<if test='searchType.equals("1")'>
+					AND m.title like concat ('%',#{searchInput},'%')
+				</if>
+				<if test='searchType.equals("2")'>
+					AND (b.name like concat ('%',#{searchInput},'%')
+					OR d.name like concat ('%',#{searchInput},'%')
+					OR o.name like concat ('%',#{searchInput},'%'))
+				</if>
+				<if test='searchType.equals("3")'>
+					AND m.content like concat ('%',#{searchInput},'%')
+				</if>
+				AND r.receiver_id = #{sessionId}
+				ORDER BY mail_idx DESC 
+				LIMIT 10 offset #{offset}
+		</if>
+		<if test='cat.equals("2")'>
+			SELECT distinct r.mail_idx, m.title, m.date, COUNT(CASE WHEN state='Y' THEN 1 END) as list_readList , count(receiver_id) as list_ttlList
+			    FROM mail_rcp r 
+			    JOIN mail m on m.mail_idx = r.mail_idx 
+			    WHERE m.hide="N"
+			    <if test='searchType.equals("1")'>
+					AND m.title like concat ('%',#{searchInput},'%')
+				</if>
+				<if test='searchType.equals("2")'>
+					AND m.content like concat ('%',#{searchInput},'%')
+				</if>
+			    AND m.sender_id = #{sessionId}
+			    GROUP BY r.mail_idx ORDER BY mail_idx DESC
+			    LIMIT 10 offset #{offset}
+		</if>
+	</select>
+	
+	<!-- 메일 읽을때 상태를 읽음으로 변경 -->
+	<update id="state" parameterType="String">
+		UPDATE mail_rcp SET state="Y" WHERE mail_idx=#{mail_idx}
+			AND receiver_id=#{sessionId}
+	</update>
+	
+	<!-- 상세보기에서 내용 출력 (제목, 내용, 날짜, 발신자 부서/이름/직급) -->
+	<select id="contentDetail" resultType="MailDTO" parameterType="String">
+		SELECT m.mail_idx, m.title, m.content, m.date, 
+			m.sender_id, b.name as mem_name, d.name as dept_name, p.name as pos_name
+			FROM mail m
+			JOIN member b ON b.mem_id = m.sender_id 
+			JOIN department d ON d.dep_idx=b.dep_idx
+			JOIN `position` p ON p.pos_idx=b.pos_idx
+			WHERE m.mail_idx = #{param1}
+	</select>
+
+	<!-- 상세보기에서 수신자 리스트 출력 (수신자 부서/이름/직급) -->
+	<select id="rcp_list" resultType="MailRcpDTO" parameterType="String">
+		select r.mail_idx, r.receiver_id, b.name as mem_name, d.name as dept_name, p.name as pos_name
+			from mail_rcp r
+			join mail m on m.mail_idx = r.mail_idx 
+			join member b on b.mem_id = r.receiver_id
+			join department d on d.dep_idx=b.dep_idx
+			join `position` p on p.pos_idx=b.pos_idx
+			WHERE r.mail_idx = #{param1}
+	</select>
+	
+	
+	<!-- 상세보기에서 파일 출력  -->
+	<select id="fileList" resultType="FileDTO" parameterType="String">
+		SELECT * FROM file 
+			WHERE num = #{mail_idx} 
+			AND file_cat = 4
+	</select>
+	
+	<!-- 상세보기에서 읽은 사람 리스트 출력 -->
+	<select id="read_list" resultType="MailRcpDTO" parameterType="String">
+		select r.receiver_id, b.name as mem_name, d.name as dept_name, p.name as pos_name
+			from mail_rcp r
+			join mail m on m.mail_idx = r.mail_idx 
+			join member b on b.mem_id = r.receiver_id
+			join department d on d.dep_idx=b.dep_idx
+			join `position` p on p.pos_idx=b.pos_idx
+			WHERE r.mail_idx = #{param1}
+			and r.state = "Y";
+	</select>
+	
+	<!-- 상세보기에서 안 읽은 사람 리스트 출력 -->
+	<select id="unread_list" resultType="MailRcpDTO" parameterType="String">
+		select r.receiver_id, b.name as mem_name, d.name as dept_name, p.name as pos_name
+			from mail_rcp r
+			join mail m on m.mail_idx = r.mail_idx 
+			join member b on b.mem_id = r.receiver_id
+			join department d on d.dep_idx=b.dep_idx
+			join `position` p on p.pos_idx=b.pos_idx
+			WHERE r.mail_idx = #{param1}
+			and r.state = "N";
+	</select>
+	
+	<!-- 답장시 받는사람 출력 (기존 보낸사람이 받는사람으로 들어감) -->
+	<select id="replyRcp" resultType="MailDTO" parameterType="String">
+		select m.mail_idx, m.sender_id, b.name as mem_name, d.name as dept_name, p.name as pos_name
+			from mail m
+			join member b on b.mem_id = m.sender_id
+			join department d on d.dep_idx=b.dep_idx
+			join `position` p on p.pos_idx=b.pos_idx
+			WHERE m.mail_idx = #{param1}
+	</select>
+	
+	
+	
+	<!-- 메일 삭제 (숨김) -->
+	<update id="delete_mail" parameterType="String" >
+		<if test='cat.equals("1")'>
+			UPDATE mail_rcp SET hide="Y" 
+				WHERE mail_idx=#{rowNum}
+				AND receiver_id=#{sessionId}
+		</if>
+		<if test='cat.equals("2")'>
+			UPDATE mail SET hide="Y" 
+				WHERE mail_idx=#{rowNum} 
+				AND sender_id=#{sessionId}
+		</if>
+	</update>
+	
+	
+	<!-- 선택한 모든 메일 읽음으로 처리 -->
+	<update id="read" parameterType="String">
+		UPDATE mail_rcp SET state="Y" 
+			WHERE mail_idx=#{rowNum}
+			AND receiver_id=#{sessionId}
+	</update>
+
+	
+
+	
+	
+</mapper>

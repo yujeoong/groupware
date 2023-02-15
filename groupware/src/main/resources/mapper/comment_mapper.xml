@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.post.dao.CommentDAO">
+	
+	<!-- 댓글 등록  -->
+	<insert id="comtRegist">
+		INSERT INTO comment(content, post_idx, mem_id)
+			VALUES(#{param1}, #{param2},#{param3})
+	</insert>
+	
+	
+	<!-- 리스트 불러오기 -->
+	<select id="comListCall" resultType="CommentDTO">
+		SELECT c.mem_id, c.content, c.date, c.com_idx, m.name as mem_name, o.name as pos_name, d.name as dept_name
+			FROM comment c 
+			JOIN post p ON c.post_idx = p.post_idx
+			JOIN member m ON m.mem_id = c.mem_id
+			JOIN position o ON o.pos_idx = m.pos_idx
+			JOIN department d ON d.dep_idx = m.dep_idx
+			WHERE c.post_idx = #{post_idx}
+			ORDER BY c.date DESC 
+			limit 10 offset #{offset}
+	</select>
+	
+	
+	<!-- 한 post내 댓글 총 갯수 -->
+	<select id="listTotal" resultType="int">
+		SELECT COUNT(com_idx) from comment 
+			WHERE post_idx = #{param1}
+	</select>
+	
+	
+	<!-- 댓글 수정 -->
+	<update id="comEdit">
+		UPDATE comment SET content = #{param1} WHERE com_idx = #{param2}
+	</update>
+	
+	<!-- 댓글 삭제 -->
+	<delete id="comDelete">
+		DELETE FROM comment WHERE com_idx = #{param1}
+	</delete>
+	
+	
+</mapper>

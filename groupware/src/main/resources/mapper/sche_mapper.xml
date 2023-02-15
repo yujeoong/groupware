@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.schedule.dao.ScheDAO">
+	
+	<select id="scheList" resultType="com.eleven.schedule.dto.ScheDTO" parameterType="String">
+		<if test="option.equals('전체일정')">SELECT s.* FROM schedule s, `member` m WHERE m.dep_idx =(SELECT dep_idx FROM `member` m WHERE mem_id =#{loginId}) AND s.mem_id =m.mem_id </if>
+		<if test="option.equals('부서 일정')">SELECT s.* FROM schedule s, `member` m WHERE s.main_idx=1 AND m.dep_idx =(SELECT dep_idx FROM `member` m WHERE mem_id =#{loginId}) AND s.mem_id =m.mem_id</if>
+		<if test="option.equals('내 일정')">SELECT * FROM schedule WHERE main_idx=2 AND mem_id=#{loginId}</if>
+	</select>
+	
+	<!-- 일정 조회 -->
+	<select id="subList" resultType="com.eleven.schedule.dto.SubsortDTO">
+		SELECT * FROM sub_sort WHERE main_idx=#{param};
+	</select>
+
+	<!-- 스케줄러 -->
+	<select id="scheDatetime" resultType="com.eleven.schedule.dto.ScheDTO" parameterType="String">
+		SELECT mem_id, sub_idx, content, LEFT(start_date, 16) AS start_date, LEFT(end_date, 16) AS end_date FROM schedule s 
+		WHERE sub_idx >=7 AND start_date=#{strNow} OR end_date = #{strNow}
+	</select>
+	
+	<!-- 본인이 일정 등록 -->
+	<insert id="scheRegist" parameterType="hashmap">
+		INSERT INTO schedule (mem_id, sub_idx, subject, location, start_date, end_date, content, main_idx) 
+		VALUES (#{loginId}, #{sub_sort}, #{subject}, #{location}, #{start_date}, #{end_date}, #{content}, #{main_sort})
+	</insert>
+	
+	<!-- 관리자>일반사원 일정 등록 -->
+	<insert id="adminScheRegist" parameterType="hashmap">
+		INSERT INTO schedule (mem_id, sub_idx, subject, location, start_date, end_date, content, main_idx) 
+		VALUES (#{mem_id}, #{sub_sort}, #{subject}, #{location}, #{start_date}, #{end_date}, #{content}, #{main_sort})
+	</insert>
+	
+	<!-- member 상태 변경 -->
+	<update id="stateUpdate" parameterType="hashmap">
+		<if test="end_date.equals(strNow)">
+			UPDATE member SET state='0' WHERE mem_id=#{mem_id} 
+		</if>
+		<if test="start_date.equals(strNow)">
+			UPDATE member SET state=(SELECT sub_name FROM sub_sort WHERE sub_idx=#{sub_idx}) WHERE mem_id=#{mem_id} 		
+		</if>
+	
+	</update> 
+	
+	<!-- 상태로그 -->
+	<insert id="stateRegist" parameterType="hashmap"> 
+		INSERT INTO state (state, date, comment, mem_id, modi_id)
+		VALUES ((SELECT state FROM `member` m WHERE mem_id =#{mem_id}), #{strNow}, #{content}, #{mem_id}, #{mem_id})
+	</insert>
+
+	<select id="memberList" resultType="com.eleven.schedule.dto.ScheMemberDTO" parameterType="String">
+		SELECT mem_id FROM `member` m WHERE dep_idx =(SELECT dep_idx FROM `member` m WHERE mem_id =#{loginId})
+	</select>
+	
+	<select id="scheDetail" resultType="com.eleven.schedule.dto.ScheDTO" parameterType="String">
+		SELECT * FROM schedule WHERE sche_idx=#{sche_idx};
+	</select>
+	
+	<select id="scheUpdateForm" resultType="com.eleven.schedule.dto.ScheDTO" parameterType="String">
+		SELECT * FROM schedule WHERE sche_idx=#{idx};
+	</select>
+	
+	<select id="depSchedule" resultType="com.eleven.schedule.dto.ScheDTO">
+		SELECT * FROM schedule WHERE sche_idx=#{scheIdx} 
+	</select>
+	
+	<update id="depScheUpdate" parameterType="hashmap">
+		UPDATE schedule 
+		SET sub_idx=#{sub_sort}, 
+			subject=#{subject}, 
+			location=#{location}, 
+			start_date=#{start_date}, 
+			end_date=#{end_date},
+			content=#{content},
+			main_idx=#{main_sort} 
+		WHERE sub_idx=#{old_sub_idx} AND subject=#{old_subject} AND location=#{old_location} 
+			  AND start_date=#{old_start_date} AND end_date=#{old_end_date} AND content=#{old_content} AND main_idx=#{old_main_idx} 
+	</update>
+	
+	<!-- 일정 수정 -->
+	<update id="scheUpdate" parameterType="hashmap">
+		UPDATE schedule 
+		SET sub_idx=#{sub_sort}, 
+			subject=#{subject}, 
+			location=#{location}, 
+			start_date=#{start_date}, 
+			end_date=#{end_date},
+			content=#{content},
+			main_idx=#{main_sort} WHERE sche_idx=#{scheIdx}
+	</update>
+	
+	<!-- 일정 삭제 -->
+	<delete id="scheDelete" parameterType="int">
+		DELETE FROM schedule WHERE sche_idx=#{sche_idx}
+	</delete>
+	
+	<select id="memberIdList" resultType="String" parameterType="String">
+		SELECT mem_id FROM `member` m WHERE dep_idx =(SELECT dep_idx FROM `member` m WHERE mem_id =#{loginId})
+	</select>
+</mapper>

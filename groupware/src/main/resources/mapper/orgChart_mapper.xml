@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.orgChart.dao.OrgChartDAO">
+	
+	<select id="orgList" resultType="OrgChartDTO">
+		SELECT m.mem_id, m.email, m.phone, 
+			m.parent_id, 
+			d.name as dept_name, 
+			m.name as mem_name, 
+			u.name as duty_name, 
+			p.name as pos_name,
+			f.new_file_name, 
+			f.file_cat,
+			m.stack, m.level
+			FROM member m
+			LEFT OUTER JOIN department d ON d.dep_idx = m.dep_idx 
+			LEFT OUTER JOIN duty u ON u.duty_idx = m.duty_idx
+			LEFT OUTER JOIN position p ON p.pos_idx = m.pos_idx
+			LEFT OUTER JOIN file f ON f.num = m.mem_id
+			WHERE f.file_cat=6 
+			ORDER BY m.level, d.name
+	</select>
+	
+
+
+</mapper>	

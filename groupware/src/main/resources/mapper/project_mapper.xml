@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+<mapper namespace="com.eleven.project.dao.ProjectPostDAO">
+
+<!-- 참여자 리스트  -->
+<select id="memList" resultType="prj" parameterType="String">
+select d.name as depart , p.name as posit, m.name, m.mem_id from authority a join `member` m on a.mem_id = m.mem_id join department d on d.dep_idx = m.dep_idx join `position` p on p.pos_idx =m.pos_idx join project p2 on a.num =p2.prj_idx where a.category =2 and a.parti ='y' and p2.prj_idx =#{param1}
+</select>
+
+
+<!-- 프로젝트명 가져오기. 프로젝트 번호 받아와야함  -->
+<select id="subject" resultType="String" parameterType="String">
+SELECT prj_subject FROM project where prj_idx =#{param1}
+</select>
+
+<!-- 프로젝트 일반 글쓰기.  작성자 아이디 받아와야 함-->
+<insert id="postWrite" useGeneratedKeys="true" keyColumn="prj_post_idx" keyProperty="prj_post_idx" parameterType="prj">
+INSERT INTO prj_post(subject, content, mem_id, prj_idx, prj_cat_idx)
+	VALUES(#{subject}, #{content}, #{mem_id}, #{prj_idx}, 1)
+</insert>
+
+
+<!-- 파일 업로드 -->
+<insert id="fileWrite">
+INSERT INTO file(num, ori_File_Name, new_file_name,file_cat)
+	VALUES (#{param1},#{param2},#{param3},2)
+</insert>
+
+
+<!-- 피드백 작성기간 확인 -->
+<select id="dateCheck" resultType="string">
+SELECT prj_end_date FROM project WHERE prj_idx = #{param1}
+</select>
+
+<!-- 프로젝트 피드백 글쓰기. 작성자 아이디 받아와야 함.-->
+<insert id="feedbackWrite" useGeneratedKeys="true" keyColumn="prj_post_idx" keyProperty="prj_post_idx" parameterType="prj">
+INSERT INTO prj_post(subject, content, mem_id, prj_idx, prj_cat_idx)
+	VALUES(#{subject}, #{content}, #{mem_id}, #{prj_idx}, 4)
+<!-- INSERT INTO prj_post(subject, content, mem_id, prj_idx, prj_cat_idx)
+	VALUES(#{subject}, #{content}, #{mem_id}, #{prj_idx}, 1) -->
+</insert>
+
+<!-- 프로젝트 일반글 리스트 -->
+<select id="postList" resultType="prj" parameterType="String">
+SELECT pp.prj_post_idx, pp.subject, pp.content, pp.date, pp.mem_id ,m.name FROM prj_post pp join `member` m on pp.mem_id = m.mem_id WHERE pp.prj_cat_idx =1 and pp.prj_idx =#{param1} order by pp.date desc
+<!-- SELECT pp.subject, pp.content, pp.date, pp.mem_id ,m.name FROM prj_post pp join `member` m on pp.mem_id = m.mem_id WHERE pp.prj_cat_idx =1 and pp.prj_idx =1 -->
+</select>
+
+<!-- 프로젝트 일반글 글번호 가져오기  --> 
+<!-- <select id="postNumList" resultType="prj" parameterType="String"> -->
+<!-- SELECT pp.prj_post_idx  FROM project p , prj_post pp where p.prj_idx =#{param1} and pp.prj_cat_idx =1; -->
+<!-- </select> -->
+
+<!-- 프로젝트 일반글 파일 리스트 -->
+<select id="fileList"  resultType="prjFile" parameterType="String">
+	SELECT ori_file_name, new_file_name FROM file WHERE file_cat = 2 and num = #{param1}
+</select>
+
+<!-- 프로젝트 일반글 댓글 리스트 -->
+<!-- <select id="commList"  resultType="comm" parameterType="int"> -->
+<!-- 	SELECT m.name, pc.com_content ,pc.com_date, pc.prj_post_idx  FROM prj_comment pc join `member` m on pc.mem_id = m.mem_id where pc.prj_post_idx = #{param1} -->
+<!-- </select> -->
+
+<!-- 일반글 댓글 리스트 출력 -->
+<select id="commList"  resultType="comm" parameterType="string">
+	SELECT m.mem_id, m.name, pc.com_content ,pc.com_date, pc.prj_post_idx, pc.prj_com_idx FROM prj_comment pc join `member` m on pc.mem_id = m.mem_id where pc.prj_post_idx = #{param1}
+</select>
+
+
+<!-- 프로젝트 일반글 상세보기 가져오기 -->
+<select id="postDetail" resultType="hashmap" parameterType="String">
+SELECT subject, content, prj_post_idx FROM prj_post WHERE prj_idx = #{param1} and prj_post_idx =#{param2} 
+</select>
+
+<!-- 프로젝트 일반글 수정하기 -->
+<update id="postUpdate">
+UPDATE prj_post SET subject = #{param1}, content =#{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+<!-- 프로젝트 피드백 글 리스트 -->
+<select id="feedbackList" resultType="prj" parameterType="String">
+SELECT pp.prj_post_idx, pp.subject, pp.content, pp.date, pp.mem_id ,m.name FROM prj_post pp join `member` m on pp.mem_id = m.mem_id WHERE pp.prj_cat_idx =4 and pp.prj_idx =#{param1} order by pp.date desc
+<!-- SELECT pp.subject, pp.content, pp.date, pp.mem_id ,m.name FROM prj_post pp join `member` m on pp.mem_id = m.mem_id WHERE pp.prj_cat_idx =1 and pp.prj_idx =1 -->
+</select>
+
+<!-- 프로젝트 피드백 글 상세보기 가져오기 -->
+<select id="feedbackDetail" resultType="hashmap" parameterType="String">
+SELECT subject, content, prj_post_idx FROM prj_post WHERE prj_idx = #{param1} and prj_post_idx =#{param2} 
+</select>
+
+<!-- 프로젝트 피드백 글 수정하기 -->
+<update id="feedbackUpdate">
+UPDATE prj_post SET subject = #{param1}, content =#{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+<!-- 프로젝트 일반글 댓글 작성하기 -->
+<insert id="comtSubmit">
+INSERT INTO prj_comment(com_content,prj_post_idx,mem_id)
+	VALUES(#{param1},#{param2}, #{param3})
+</insert>
+
+<!-- 프로젝트 일반글 댓글 수정하기 -->
+<update id="comtUpdate">
+UPDATE prj_comment SET com_content = #{param2} WHERE prj_com_idx = #{param1}
+</update>
+
+<!-- 프로젝트 일반글 댓글 삭제하기 -->
+<delete id="comDelete">
+DELETE FROM prj_comment WHERE prj_com_idx = #{param1}
+</delete>
+
+<!-- 프로젝트 업무글 작성. prj_post 테이블에 데이터 넣기 -->
+<insert id="taskWrite" useGeneratedKeys="true" keyColumn="prj_post_idx" keyProperty="prj_post_idx" parameterType="prj">
+INSERT INTO prj_post(subject, content, mem_id, prj_idx, prj_cat_idx)
+	VALUES(#{subject}, #{content}, #{mem_id}, #{prj_idx}, 2)
+</insert>
+
+<!-- 프로젝트 업무글 작성. prj_task 테이블에 데이터 넣기 -->
+<insert id="taskStateWrite" parameterType="prj">
+INSERT INTO prj_task(prj_post_idx, state, plan_start, plan_end, mem_id)
+	VALUES(#{param1}, 0, #{param2}, #{param3}, #{param4})
+</insert>
+
+<!-- 프로젝트 업무글 상세보기 -->
+<select id="taskList" resultType="prj" parameterType="String">
+SELECT pp.prj_post_idx, pp.mem_id, m2.name, pp.subject ,pp.content ,pp.`date` ,pt.state ,pt.plan_start ,pt.plan_end,pt.mem_id, m.name as charge from prj_post pp join prj_task pt on pp.prj_post_idx = pt.prj_post_idx join `member` m on pt.mem_id = m.mem_id join `member` m2 ON pp.mem_id = m2.mem_id  where pp.prj_cat_idx =2 and pp.prj_idx =#{param1} order by pp.date desc
+</select>
+
+<!-- 프로젝트 업무상태 준비중으로 바꾸기 -->
+<update id="stateUpdate_task_ready">
+UPDATE prj_task SET state = 0  WHERE prj_post_idx = #{param1}
+</update>
+
+<!-- 프로젝트 업무상태 진행중으로 바꾸기 -->
+<update id="stateUpdate_task_ing">
+UPDATE prj_task SET state = 1 WHERE prj_post_idx = #{param1}
+</update>
+
+<!-- 프로젝트 업무상태 완료로 바꾸기 -->
+<update id="stateUpdate_task_fin">
+UPDATE prj_task SET state = 2 WHERE prj_post_idx = #{param1}
+</update>
+
+<!-- 업무상태 준비중으로 변경 댓글 등록 -->
+<insert id="readyCommRegit">
+INSERT INTO prj_comment(com_content,prj_post_idx,mem_id)
+	VALUES(CONCAT(#{param3}, '님이 업무 상태를 "준비중"으로 변경하였습니다.') ,#{param2}, #{param1})
+</insert>
+
+<!-- 업무상태 진행중으로 변경 댓글 등록 -->
+<insert id="ingCommRegit">
+INSERT INTO prj_comment(com_content,prj_post_idx,mem_id)
+	VALUES(CONCAT(#{param3}, '님이 업무 상태를 "진행중"으로 변경하였습니다.') ,#{param2}, #{param1})
+</insert>
+
+<!-- 업무상태 완료로 변경 댓글 등록 -->
+<insert id="finCommRegit">
+INSERT INTO prj_comment(com_content,prj_post_idx,mem_id)
+	VALUES(CONCAT(#{param3}, '님이 업무 상태를 "완료"로 변경하였습니다.') ,#{param2}, #{param1})
+</insert>
+
+<!-- 작성자와 업무담당자 다를시 알림테이블에 데이터 전송  -->
+<insert id="sendNoti" useGeneratedKeys="true" keyColumn="noti_idx" keyProperty="noti_idx" parameterType="noti">
+	INSERT INTO notification(content, mem_id)	 VALUES(#{content}, #{mem_id})
+</insert>
+
+<!-- 작성자와 업무담당자 다를시 알림 수신테이블에 데이터 전송  -->
+<insert id="sendNoti_rcp">
+INSERT INTO noti_rcp(noti_idx, mem_id) VALUES(#{param1}, #{param2})
+</insert>
+
+<!-- 프로젝트 투표 글쓰기 -->
+<insert id="pollWrite" useGeneratedKeys="true" keyColumn="prj_post_idx" keyProperty="prj_post_idx" parameterType="prj">
+INSERT INTO prj_post(subject, content, mem_id, prj_idx, prj_cat_idx)
+	VALUES(#{subject}, #{content}, #{mem_id}, #{prj_idx}, 3)
+</insert>
+
+<!-- 프로젝트 투표 종료날짜, 익명/기명 데이터 넣기  -->
+<insert id="pollState" parameterType="poll">
+INSERT INTO prj_poll(prj_post_idx, end_date, anon)
+	VALUES(#{prj_post_idx},#{end_date},#{anon})
+</insert>
+
+<!-- 프로젝트 투표 선택지 데이터 넣기 -->
+<insert id="pollSel" parameterType="sel">
+INSERT INTO poll_selection(prj_post_idx, sel_content)
+	VALUES(#{prj_post_idx}, #{sel_content})
+</insert>
+
+<!-- 프로젝트 투표 리스트 불러오기 -->
+<select id="pollList" resultType="prj" parameterType="String">
+SELECT pp.prj_post_idx , pp.subject , pp.content , pp.`date` , pp.mem_id,  m.name , pp2.end_date , pp2.anon 
+	FROM prj_post pp JOIN `member` m ON pp.mem_id= m.mem_id 
+	JOIN prj_poll pp2 ON pp.prj_post_idx = pp2.prj_post_idx 
+	WHERE pp.prj_idx =#{param1} and pp.prj_cat_idx =3 order by pp.date desc
+</select>
+
+<!-- 프로젝트 투표글 선택지 가져오기 -->
+<select id="selList" resultType="sel" parameterType="String">
+SELECT ps.sel_idx, sel_content, count(pl.mem_id) as pollcount FROM poll_selection ps LEFT JOIN poll_log pl ON ps.sel_idx=pl.sel_idx WHERE prj_post_idx = #{param1} GROUP BY ps.sel_idx;
+</select>
+
+<!-- 프로젝트 투표 참여자 수 가져오기 -->
+<select id="totalCount" resultType="int">
+SELECT count(pl.mem_id)as totalCount FROM poll_log pl 
+	LEFT OUTER JOIN poll_selection ps on pl.sel_idx = ps.sel_idx 
+	LEFT OUTER JOIN prj_poll pp on pp.prj_post_idx = ps.prj_post_idx 
+WHERE pp.prj_post_idx = #{param1}	
+</select>
+
+<!-- 내가 투표한 선택지 체크표시하기 -->
+<select id="selected" resultType="String" parameterType="String">
+SELECT ps.sel_content FROM poll_log pl 
+	JOIN poll_selection ps ON pl.sel_idx = ps.sel_idx 
+	JOIN prj_poll pp ON ps.prj_post_idx = pp.prj_post_idx 
+	WHERE pl.mem_id = #{param2} AND ps.prj_post_idx = #{param1}
+</select>
+
+<!-- 투표하기  -->
+<insert id="doPoll">
+INSERT INTO poll_log(mem_id, sel_idx)VALUES(#{param1},#{param2})
+</insert>
+
+
+<!-- 내가 투표한 선택지 idx 가져오기 -->
+<select id="getSelIdx" resultType="int" parameterType="String">
+SELECT ps.sel_idx FROM poll_log pl 
+	JOIN poll_selection ps ON pl.sel_idx = ps.sel_idx 
+	JOIN prj_poll pp ON ps.prj_post_idx = pp.prj_post_idx 
+	WHERE pl.mem_id = #{param1} AND ps.prj_post_idx = #{param2}
+</select>
+
+<!-- 투표 취소하기  -->
+<delete id="cancelPoll">
+DELETE from poll_log WHERE mem_id = #{param1} and sel_idx = #{param2}
+</delete>
+
+<!-- 선택지별 투표자 가져오기  -->
+<select id="pollMem" resultType="sel" parameterType="String">
+SELECT d.name as depart, p.name as posit , m.name 
+	FROM poll_log pl JOIN `member` m ON pl.mem_id = m.mem_id 
+		JOIN `position` p ON m.pos_idx = p.pos_idx 
+		JOIN department d ON d.dep_idx = m.dep_idx 
+	WHERE pl.sel_idx = #{param1}
+</select>
+
+
+<!-- 프로젝트 업무글 수정하기 -->
+<update id="taskUpdate">
+UPDATE prj_post SET subject = #{param1}, content =#{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+<!-- 프로젝트 업무글 날짜 수정하기 -->
+<update id="tastDateUpdate">
+UPDATE prj_task SET plan_start = #{param1}, plan_end =#{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+
+<!-- 프로젝트 투표글 제목,날짜 수정하기 -->
+<update id="poll_postUpdate">
+UPDATE prj_post SET subject =#{param1}, content = #{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+<!-- 프로젝트 투표글 투표마감일, 익명기명 수정하기 -->
+<update id="poll_stateUpdate">
+UPDATE prj_poll SET anon =#{param1}, end_date = #{param2} WHERE prj_post_idx = #{param3}
+</update>
+
+<!-- 프로젝트 홈 모든 글 출력 -->
+<select id="HomeList" resultType="prj" parameterType="String">
+SELECT m.name as writer, pp.mem_id, pp.prj_post_idx , pp.prj_cat_idx, pp.subject ,pp.content ,pp.`date` ,
+pt.state , pt.plan_start , pt.plan_end ,  m2.name as charge, pp2.end_date , pp2.anon 
+	FROM prj_post pp left outer join `member` m ON pp.mem_id = m.mem_id 
+	LEFT OUTER JOIN prj_task pt ON pp.prj_post_idx = pt.prj_post_idx 
+	LEFT OUTER JOIN `member` m2 ON pt.mem_id = m2.mem_id 
+	LEFT OUTER JOIN prj_poll pp2 ON pp2.prj_post_idx = pp.prj_post_idx 
+WHERE pp.prj_idx =#{param1} ORDER by date DESC limit 10
+</select>
+
+<delete id="deleteSel">
+DELETE FROM poll_selection WHERE prj_post_idx = #{param1}
+</delete>
+
+<!-- 
+<update id="sel_update" parameterType="sel">
+  UPDATE poll_selection SET
+  		sel_content = #{sel_content}
+  		,end_date = #{end_date}
+  WHERE sel_idx =(select sel_idx from poll_selection where prj_post_idx = #{prj_post_idx} order by sel_idx limit 1 offset #{offset});
+ </update>
+ -->
+ 
+ <select id="authority" parameterType="prj" resultType="int">
+ SELECT EXISTS (SELECT mem_id from authority WHERE parti ='Y' AND category = 2 AND num = #{prj_idx} AND mem_id = #{mem_id})
+ </select>
+ 
+ <select id="fileName" parameterType="String" resultType="String">
+ SELECT ori_file_name FROM file WHERE file_cat =2 and new_file_name = #{param1}
+ </select>
+ 
+ <select id="access" resultType="String" parameterType="String">
+ select * from authority a where a.mem_id = #{param2} and a.category =2 and a.num = #{param1}
+ </select>
+ 
+ 
+</mapper>

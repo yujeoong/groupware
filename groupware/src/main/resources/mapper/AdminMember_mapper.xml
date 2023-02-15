@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.admin.dao.AdminMemberDAO">
+
+	<select id="totalCount" resultType="int">
+		SELECT COUNT(*) FROM member
+		<where>
+			<if test="!idCheck.equals('')">
+				mem_id = #{idCheck}
+			</if>
+			<if test="searchOption.equals('name')">
+				name like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="searchOption.equals('mem_id')">
+				mem_id like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="!depOption.equals('none')">
+				AND dep_idx = #{depOption}
+			</if>
+			<if test="!posOption.equals('none')">
+				AND pos_idx = #{posOption}
+			</if>
+			<if test="!dutyOption.equals('none')">
+				AND duty_idx = #{dutyOption}
+			</if>
+		</where>
+	</select>
+
+	<select id="depList"
+		resultType="com.eleven.admin.dto.DepartmentDTO" parameterType="String">
+		SELECT * FROM department
+		<where>
+			<if test="!option.equals('none')">
+				active = #{option}
+			</if>
+		</where>
+	</select>
+
+	<select id="posList" resultType="com.eleven.admin.dto.PosDTO"
+		parameterType="String">
+		SELECT * FROM position
+		<where>
+			<if test="!option.equals('none')">
+				active = #{option}
+			</if>
+		</where>
+	</select>
+
+	<select id="dutyList" resultType="com.eleven.admin.dto.DutyDTO"
+		parameterType="String">
+		SELECT * FROM duty
+		<where>
+			<if test="!option.equals('none')">
+				active = #{option}
+			</if>
+		</where>
+	</select>
+
+	<select id="supervList"
+		resultType="com.eleven.admin.dto.MemberListDTO" parameterType="String">
+		SELECT
+		m.mem_id , m.name , p.name AS posname FROM `member` m
+		JOIN `position` p
+		ON m.pos_idx = p.pos_idx
+		WHERE dep_idx = #{depIdx} AND state != '6'
+	</select>
+
+	<select id="memList"
+		resultType="com.eleven.admin.dto.MemberListDTO">
+		SELECT m.mem_id, m.name, m.email
+		,d.name AS depname
+		,dt.name
+		AS dutyname
+		,p.name AS posname
+		FROM `member` m , department d , duty dt,
+		`position`
+		p
+		<where>
+			d.dep_idx = m.dep_idx
+			AND dt.duty_idx = m.duty_idx
+			AND p.pos_idx =
+			m.pos_idx
+			<if test="searchOption.equals('name')">
+				AND m.name like concat ('%',#{searchWhat},'%')
+
+			</if>
+			<if test="searchOption.equals('mem_id')">
+				AND m.mem_id like concat ('%',#{searchWhat},'%')
+			</if>
+			<if test="!depOption.equals('none')">
+				AND m.dep_idx = #{depOption}
+			</if>
+			<if test="!posOption.equals('none')">
+				AND m.pos_idx = #{posOption}
+			</if>
+			<if test="!dutyOption.equals('none')">
+				AND m.duty_idx = #{dutyOption}
+			</if>
+		</where>
+		limit 10 offset #{offset}
+	</select>
+
+	<select id="depNameFind" parameterType="hashmap"
+		resultType="int">
+		<if test="checkName.equals('부서')">
+			select count(name) from department
+		</if>
+		<if test="checkName.equals('직급')">
+			select count(name) from position
+		</if>
+		<if test="checkName.equals('직책')">
+			select count(name) from duty
+		</if>
+		where name = #{name}
+	</select>
+
+
+	<insert id="depRegist" parameterType="hashmap">
+		<if test="checkName.equals('부서')">
+			INSERT INTO
+			department(name,active) VALUES(#{name},
+			#{active})
+		</if>
+		<if test="checkName.equals('직급')">
+			INSERT INTO
+			`position`(name,active) VALUES(#{name},
+			#{active})
+		</if>
+		<if test="checkName.equals('직책')">
+			INSERT INTO
+			duty(name,active,level) VALUES(#{name},
+			#{active},#{level})
+		</if>
+	</insert>
+
+	<update id="depUpdate" parameterType="hashmap">
+		<if test="checkName.equals('부서')">
+			UPDATE department
+			<set>
+				<if test="!name.equals('')">
+					name=#{name},
+				</if>
+				active = #{active}
+			</set>
+
+		</if>
+		<if test="checkName.equals('직급')">
+			UPDATE position
+			<set>
+				<if test="!name.equals('')">
+					name=#{name},
+				</if>
+				active = #{active}
+			</set>
+		</if>
+		<if test="checkName.equals('직책')">
+			UPDATE duty
+			<set>
+				<if test="!name.equals('')">
+					name=#{name},
+				</if>
+				active = #{active},
+				level = #{level}
+			</set>
+		</if>
+		WHERE name = #{oldName};
+	</update>
+
+	<insert id="memRegist" parameterType="MemberDTO">
+		INSERT INTO member(mem_id,
+		pw, name,
+		dep_idx, pos_idx, duty_idx,
+		parent_id, join_date, email,
+		phone, address)
+		VALUES(#{mem_id},#{pw},#{name},#{dep_idx},#{pos_idx},#{duty_idx},
+		#{parent_id},#{join_date},#{email},#{phone},#{address})
+	</insert>
+
+	<insert id="upload">
+		INSERT INTO file(ori_file_name,
+		new_file_name,file_cat, num)
+		VALUES(#{ori_file_name},#{new_file_name},#{cate},#{getId})
+	</insert>
+
+	<insert id="depChange" parameterType="MemberDTO">
+		INSERT INTO
+		`change`(mem_id,dep_idx,pos_idx,duty_idx,modi_idx,comment,date)
+		VALUES(#{mem_id},#{dep_idx},#{pos_idx},#{duty_idx},#{sessionId},#{comment},#{todayKor})
+	</insert>
+
+	<insert id="stateChange" parameterType="MemberDTO"> 
+		INSERT INTO
+		`state`(mem_id,state,modi_id,comment,date)
+		VALUES(#{mem_id},#{state},#{sessionId},#{comment},#{todayKor})
+	</insert>
+
+	<insert id="authChange" parameterType="MemberDTO">
+		INSERT INTO
+		authority(mem_id,category,num,parti)
+		VALUES(#{mem_id},#{cate},#{dep_idx},#{auth})
+	</insert>
+
+	<select id="memDetail" parameterType="String"
+		resultType="hashmap">
+		SELECT m.mem_id, m.name, m.email, m.birthday, m.address,
+		m.phone, m.join_date, m.stack, m.parent_id, m.state,
+		m.dep_idx,
+		m.pos_idx, m.duty_idx,
+		d.name as depName, dt.name as dutyName, p.name
+		as posName
+		FROM `member` m
+		JOIN department d ON m.dep_idx = d.dep_idx
+		JOIN duty dt ON m.duty_idx = dt.duty_idx
+		JOIN `position` p ON m.pos_idx
+		= p.pos_idx
+		WHERE m.mem_id = #{mem_id};
+	</select>
+
+	<select id="changeList" parameterType="String"
+		resultType="ChangeDTO">
+		SELECT c.mem_id, c.modi_idx, c.`date`, c.comment,
+		d.name as
+		depName, p.name as posName, dt.name as dutyName
+		FROM `change` c
+		JOIN
+		department d ON c.dep_idx = d.dep_idx
+		JOIN duty dt ON c.duty_idx =
+		dt.duty_idx
+		JOIN `position` p ON c.pos_idx = p.pos_idx
+		WHERE c.mem_id =
+		#{mem_id}
+	</select>
+
+	<select id="stateList" parameterType="String"
+		resultType="StateDTO">
+		SELECT * FROM state WHERE mem_id = #{mem_id}
+	</select>
+
+	<select id="haveCareer" parameterType="String" resultType="int">
+		SELECT COUNT(*) career WHERE mem_id = #{mem_id} AND car_category =
+		#{whatCareer}
+	</select>
+
+	<select id="careerList" parameterType="String"
+		resultType="CareerDTO">
+		SELECT * career WHERE mem_id = #{mem_id} AND car_category =
+		#{whatCareer}
+	</select>
+
+	<select id="authList" parameterType="String"
+		resultType="authority">
+		SELECT * authority WHERE mem_id = #{mem_id}
+	</select>
+
+	<update id="memUpdate" parameterType="MemberDTO">
+		UPDATE `member` m
+		JOIN
+		department d ON m.dep_idx = d.dep_idx
+		JOIN duty dt ON m.duty_idx =
+		dt.duty_idx
+		JOIN `position` p ON m.pos_idx = p.pos_idx
+		SET
+		m.name =
+		#{name},
+		m.email= #{email},
+		m.birthday= #{birthday},
+		m.address=
+		#{address},
+		m.phone=#{phone},
+		m.join_date= #{join_date},
+		m.stack =
+		#{stack},
+		m.parent_id= #{parent_id},
+		m.dep_idx= #{dep_idx},
+		m.pos_idx=
+		#{pos_idx},
+		m.duty_idx= #{duty_idx}
+		WHERE
+		m.mem_id = #{mem_id};
+	</update>
+
+	<update id="updateFile">
+		UPDATE file
+		SET ori_file_name=#{ori_file_name},
+		new_file_name=#{new_file_name},
+		file_cat=#{cate}, num=#{getId}
+		WHERE num
+		=#{getId} AND file_cat = #{cate}
+	</update>
+
+	<update id="changePw">
+		UPDATE `member` SET pw = #{getPw} WHERE mem_id =
+		#{mem_id};
+	</update>
+
+	<select id="picFile" resultType="MyFileDTO">
+		SELECT * FROM file WHERE
+		file_cat = #{cate} AND num = #{mem_id}
+	</select>
+
+	<select id="picFileChk" resultType="int">
+		SELECT COUNT(*) FROM file
+		WHERE file_cat = #{cate} AND num = #{mem_id}
+	</select>
+
+	<select id="getPw" resultType="String">
+		SELECT pw FROM member WHERE mem_id
+		= #{mem_id}
+	</select>
+
+	<select id="checkLevel" resultType="int">
+		SELECT COUNT(*) FROM `member`
+		WHERE
+		mem_id = #{adminId} AND `level` &lt; 2;
+	</select>
+
+	<select id="activeFind" resultType="String">
+		<if test="checkName.equals('부서')">
+			SELECT active FROM department
+		</if>
+		<if test="checkName.equals('직급')">
+			SELECT active FROM position
+		</if>
+		<if test="checkName.equals('직책')">
+			SELECT active FROM duty
+		</if>
+		WHERE name = #{oldName};
+	</select>
+
+	<select id="checkPeople" resultType="int">
+		SELECT COUNT(*) FROM member m
+		JOIN department d ON d.dep_idx = m.dep_idx
+		JOIN position p ON p.pos_idx = m.pos_idx
+		JOIN duty dt ON dt.duty_idx = m.duty_idx
+		<where>
+			<if test="checkName.equals('부서')">
+				d.name = #{oldName};
+			</if>
+			<if test="checkName.equals('직급')">
+				p.name = #{oldName};
+			</if>
+			<if test="checkName.equals('직책')">
+				dt.name = #{oldName};
+			</if>
+		</where>
+	</select>
+
+
+</mapper>

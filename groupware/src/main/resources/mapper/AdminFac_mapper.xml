@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.admin.dao.AdminFacDAO">
+	
+	<select id="Faclist" resultType="com.eleven.admin.dto.AdminFacDTO">
+		SELECT * FROM facility 	
+				<where>
+					<if test="!option.equals('none')">
+						`type`= #{option}
+					</if>
+					<if test="!searchWhat.equals('')">
+						name like concat ('%',#{searchWhat},'%')
+					</if>
+				</where>
+			ORDER BY fac_idx DESC limit 10 offset #{offset} 
+	</select>
+
+	<select id="totalCount" resultType="int">
+		SELECT COUNT(*) FROM facility
+				<where>
+					<if test="!option.equals('none')">
+						`type`= #{option}
+					</if>
+					<if test="!searchWhat.equals('')">
+						name like concat ('%',#{searchWhat},'%')
+					</if>
+				</where>
+	</select>
+	
+	<insert id = "facRegist" parameterType="hashmap">
+		INSERT INTO facility(name,`type`,state,comment)
+			VALUES(#{facName}, #{facType}, #{facState}, #{facComment})
+	</insert>
+	
+	<update id="facUpdate" parameterType="hashmap">
+		UPDATE facility <set> 
+							<if test="!facNewName.equals('')">
+							name=#{facNewName}, 
+							</if>
+							`type`= #{facNewType}, 
+							state= #{facNewState}, 
+							comment=#{facNewComment}
+						</set>
+								WHERE name=#{facOldName};
+	</update>
+	
+	<select id="facNameFind" resultType="int">
+		SELECT count(*) FROM facility WHERE name = #{param1}
+	</select>
+	
+	<select id="whatIsName" resultType="String">
+		SELECT name FROM facility WHERE name = #{param1}
+	</select>
+	
+	
+</mapper>

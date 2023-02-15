@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC   "-//mybatis.org//DTD Mapper 3.0//EN"
+   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"
+>
+
+<mapper namespace="com.eleven.home.dao.HomeDAO">
+	<!-- todo list -->
+	<select id="todoList" resultType="com.eleven.home.dto.HomeTodoDTO">
+		SELECT * FROM todo t WHERE mem_id=#{param1} ORDER BY done
+	</select>
+	
+	<!-- todo regist -->
+	<insert id="todoRegist" parameterType="hashmap">
+		INSERT INTO todo (content, mem_id) VALUES (#{content}, #{loginId}) 
+	</insert>
+	
+	<!-- todo delete -->
+	<delete id="todoDelete" parameterType="int">
+		DELETE FROM todo WHERE todo_idx=#{int}
+	</delete>
+	
+	<!-- todo edit -->
+	<update id="todoEdit" parameterType="hashmap">
+		UPDATE todo SET content=#{content}, done=#{done} WHERE todo_idx=#{idx}
+	</update>
+	
+	<!-- todo done -->
+	<update id="todoDoneEdit" parameterType="hashmap">
+		UPDATE todo SET done=#{done} WHERE todo_idx=#{idx}
+	</update>
+	
+	<!-- todoCnt -->
+	<select id="todoCnt" resultType="int">
+		SELECT COUNT(*) FROM todo WHERE done='Y'
+	</select>
+	
+	<!-- todoCron -->
+	<delete id="todoCron" statementType="CALLABLE" parameterType="int">
+		{call todoDone(#{cnt})}
+	</delete>
+	
+	<!-- apprdoc list -->
+	<select id="appr_docList" resultType="com.eleven.home.dto.HomeDocDTO" parameterType="String">
+		SELECT ad.subject, ad.state AS doc_state, al.state AS detail_state, al.app_date, al.order, @rownum := @rownum + 1 AS no 
+		FROM appr_doc ad, appr_line al
+		WHERE ad.mem_id=#{loginId} AND ad.doc_idx=al.doc_idx AND (@ROWNUM:=0)=0 AND al.app_date IS NULL GROUP BY subject
+	</select> 
+	
+	<!-- prjCnt -->
+	<select id="prjList" resultType="com.eleven.home.dto.HomeTaskDTO">
+		SELECT prj_idx FROM project
+	</select>
+	
+	<!-- taskList -->
+	<select id="taskList" resultType="com.eleven.home.dto.HomeTaskDTO">
+		SELECT p.prj_subject, pp.subject, pt.state, pt.plan_start, pt.plan_end 
+		FROM prj_post pp, project p, prj_task pt 
+		WHERE pp.prj_cat_idx='2' AND pp.prj_idx=#{prj_idx} AND pp.prj_post_idx=pt.prj_post_idx AND pt.mem_id=#{loginId} AND p.prj_idx=pp.prj_idx ORDER BY plan_end DESC
+	</select>
+	
+	<!-- 스케줄러 업무 삭제 todoDelete -->
+	<delete id="todoDeleteSchedule" parameterType="int">
+		DELETE FROM todo WHERE done ='Y'
+	</delete>
+</mapper>

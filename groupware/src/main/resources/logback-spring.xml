@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+
+<!-- logback-spring.xml 을 통해 상세한 설정이 가능하다. -->
+<!-- 60초마다 설정 파일의 변경을 확인 하여 변경시 갱신 -->
+<configuration scan="true" scanPeriod="60 seconds">
+
+	<!-- 패턴 등록 -->
+	<property name="LOG_PATTERN" value="%-5p %d{yy-MM-dd HH:mm:ss} [%C:%L] - %m%n"/>
+	<!-- 	INFO  22-12-07 11:08:45 [kr.co.gudi.controller.WarController:15] - start home -->
+
+	<!-- Appenders :  CONSOLE -->
+	<appender name="console" class="ch.qos.logback.core.ConsoleAppender">	
+		<!-- 출력 패턴 -->
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>${LOG_PATTERN}</pattern> 		
+		</encoder>
+	</appender>
+	
+	<!-- Appenders: File -->
+	<appender name="file" class="ch.qos.logback.core.rolling.RollingFileAppender">	
+		<!-- 저장 위치 -->
+<!-- 		<file>C:/logs/boot.log</file> -->
+		<file>/usr/local/tomcat/logs/boot.log</file>
+		<!-- 출력 패턴 -->
+		<encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+			<pattern>${LOG_PATTERN}</pattern> 		
+		</encoder>
+		<!-- rolling 정책 -->
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- 일자별로 저장. %i는 몇번째 파일인지. zip으로 저장하고 싶으면 확장자만 바꾸면 됨. -->
+<!-- 			<fileNamePattern>C:/logs/boot.%d{yyyy-MM-dd}_%i.log</fileNamePattern> -->
+			<fileNamePattern>/usr/local/tomcat/logs/boot.%d{yyyy-MM-dd}_%i.log</fileNamePattern>
+			<!-- 파일 용량 -->
+			<timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+				<maxFileSize>10MB</maxFileSize>
+			</timeBasedFileNamingAndTriggeringPolicy>
+			<!-- 로그파일 보관 주기(날짜단위) -->
+			<maxHistory>30</maxHistory>
+		</rollingPolicy>
+	</appender>
+		
+		
+	<!-- SQL LOG 옵션 설정 (쿼리문과 걸린시간, 결과를 보도록 한다.)-->	
+	<logger name="jdbc.connection" level="OFF"/>
+	<logger name="jdbc.sqlonly" level="OFF"/>
+	<logger name="jdbc.sqltiming" level="INFO"/>
+	<logger name="jdbc.audit" level="OFF"/>
+	<logger name="jdbc.resultset" level="OFF"/>
+	<logger name="jdbc.resultsettable" level="INFO"/>	
+
+   	<!-- Root Logger -->
+	<root>
+		<appender-ref ref="console" />
+		<appender-ref ref="file" />
+	</root>
+    
+</configuration>

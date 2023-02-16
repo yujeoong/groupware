@@ -72,9 +72,10 @@ ELEVEN은 엔터테인먼트 기업을 위한 아티스트, 연습생 및 프로
 ![erd](https://user-images.githubusercontent.com/124366993/219115518-46875997-4b71-4797-ad37-70eb946c1802.png)
 
 
-## ✔ 주요 기술
+## ✔ 개발 환경 및 라이브러리 
 ---
 - Java 8
+- JavaScript
 - Springboot 2.7.7
 - Spring Security
 - Spring Web
@@ -88,7 +89,7 @@ ELEVEN은 엔터테인먼트 기업을 위한 아티스트, 연습생 및 프로
 
 ## ✔ 협업 도구 
 ---
-- Gitlab
+- GitHub, Sourcetree
   - 코드의 버전을 관리
   - 이슈 발행, 해결을 위한 토론
 - 회의

@@ -80,7 +80,6 @@ ELEVEN은 엔터테인먼트 기업을 위한 아티스트, 연습생 및 프로
 - Spring Security
 - Spring Web
 - MariaDB
-- MySQL
 - MyBatis
 - Docker
 - Oracle Cloud
